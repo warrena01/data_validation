@@ -1,0 +1,122 @@
+def plot_maps(data, country_geometry_high_res, map_output, inside, outside_high_res, inside_count, file_path, country_geometry_low_res): 
+    
+    map_plot = folium.Map(location=[data['latitude'].mean(), data['longitude'].mean()], zoom_starts=4, tiles='CartoDB positron')
+    country_geojson = country_geometry_high_res.__geo_interface__
+    folium.GeoJson(country_geojson, name='Country Boundary',style_function=lambda feature:{
+                        'fillColor': 'lightyellow',
+                        'color': 'black',
+                        'weight': 1,
+                        'fillOpacity': 0.3,      
+                        }
+                      ).add_to(map_plot)
+    
+    heat_data = [[row['latitude'], row['longitude']] for index, row in data.iterrows() if Point(row['longitude'], row['latitude']).within(country_geometry_low_res)]
+    marker_cluster = folium.plugins.MarkerCluster(name="Coordinate Points", options={'disableClusteringAtZoom':10},show=False).add_to(map_plot)
+
+    #overlay group
+    overlay_group = folium.FeatureGroup(name='Overlay Layers',show=False)
+    overlay_group.add_to(map_plot)
+
+    if map_output == 'H':
+        HeatMap(heat_data,name="HeatMap", show = False).add_to(map_plot)
+
+    elif map_output == 'HO':
+        HeatMap(heat_data,name="HeatMap", show = False).add_to(map_plot)
+        for lat_long,count in inside_count.items():
+            folium.Circle(lat_long,popup={lat_long},
+                            radius=count*5, color ='black', fill=True,fill_opacity=0.5).add_to(overlay_group)
+
+    elif map_output == 'P':
+        for lat_long,count in inside_count.items():
+            folium.Marker(lat_long,popup=f"Inside Boundaries<br>{lat_long}",
+                            icon=folium.Icon(color='green')).add_to(marker_cluster)
+            folium.Circle(lat_long,popup={lat_long},
+                            radius=count*5, color ='black', fill=True, fill_opacity=0.5).add_to(overlay_group)
+    else:
+        HeatMap(heat_data, name="HeatMap", show = False).add_to(map_plot)
+        for lat_long,count in inside_count.items():
+            folium.Marker(lat_long,popup=f"Inside Boundaries<br>{lat_long}",
+                            icon=folium.Icon(color='green')).add_to(marker_cluster)
+            folium.Circle(lat_long,popup={lat_long},
+                            radius=count*5, color ='black', fill=True, fill_opacity=0.5).add_to(overlay_group)
+
+    for ID,lat,lon in outside_high_res:
+        folium.Marker(location=[lat,lon], popup=f"Outside Boundaries<br>ID:{ID}<br>{lat}<br>{lon}",
+                            icon=folium.Icon(color='red')).add_to(map_plot)
+
+    # Adding legend for differentiating Inside and Outside coordinate points
+    legend_html = """
+        <div style="position: fixed; bottom:30px; right:30px; z-index:9999; font-size:11px;">
+            <p><i class="fa fa-circle fa-1x" style="color:green"></i> Inside Boundary</p>
+            <p><i class="fa fa-circle fa-1x" style="color:red"></i> Outside Boundary</p>
+        </div>
+        """
+    map_plot.get_root().html.add_child(folium.Element(legend_html))
+
+    # Adding various tiles option incoorporated within Folium library
+    folium.TileLayer('CartoDB positron').add_to(map_plot) #Selected as Default
+    folium.TileLayer('OpenStreetMap').add_to(map_plot) 
+    folium.TileLayer('Stamen Terrain').add_to(map_plot)
+    folium.TileLayer('Stamen Toner').add_to(map_plot)
+    folium.TileLayer('esrinatgeoworldmap', name='Esri NatGeo WorldMap', attr=' Esri, Delorme, NAVTEQ').add_to(map_plot)
+
+    # Full Screen option
+    folium.plugins.Fullscreen().add_to(map_plot)
+
+    # Layer control for each layers added can be checked & unchecked while selecting
+    folium.LayerControl(position='topright',collapsed=True, autoZIndex=True).add_to(map_plot)
+
+    # Saved as map.html 
+    map_plot.save(file_path)
+    
+def geospatial_analysis():
+    
+    global data
+    global shapefile_low_res
+    global shapefile_high_res
+    
+    # get the shapefiles
+    gdf_low_res = gpd.read_file(shapefile_low_res)
+    gdf_high_res = gpd.read_file(shapefile_high_res)
+    
+    # isolate the geometries
+    country_gdf_low_res = gdf_low_res.loc[gdf_low_res['NAME'] == country_name] # isolate row
+    country_geometry_low_res = country_gdf_low_res.geometry.iloc[0] # get multipolygon
+    country_gdf_high_res = gdf_high_res.loc[gdf_high_res['NAME'] == country_name] # isolate row
+    country_geometry_high_res = country_gdf_high_res.geometry.iloc[0] # get multipolygon
+    
+    # start variables for coordinate lists and counters
+    inside = []
+    outside_low_res = pd.DataFrame(columns=data.columns)
+    outside_high_res = []
+    inside_count = {}
+    outside_count = {}
+    
+    # check if it is in the low resolution file
+    for id, row in data.iterrows():
+        location = Point(row['longitude'], row['latitude'])
+        if location.within(country_geometry_low_res):
+            inside.append((row['ID'], row['latitude'], row['longitude']))
+            lat_long = (row['latitude'], row['longitude'])
+            inside_count[lat_long] = inside_count.get(lat_long, 0)+1
+        # add it to a temporary df if point is outside of low_res
+        else:
+            df_temporary = pd.DataFrame(data = [row], columns=outside_low_res.columns)
+            outside_low_res = pd.concat([outside_low_res, df_temporary], ignore_index=True)
+    
+    # check for remaining points if they are in the high resolution file
+    for id, row in outside_low_res.iterrows():
+        location = Point(row['longitude'], row['latitude'])
+        if location.within(country_geometry_high_res):
+            inside.append((row['ID'], row['latitude'], row['longitude']))
+            lat_long = (row['latitude'], row['longitude'])
+            inside_count[lat_long] = inside_count.get(lat_long, 0)+1  
+        # add it to the list of coordinates outside of the zone
+        else:             
+            outside_high_res.append((row['ID'], row['latitude'], row['longitude']))
+            lat_long = (row['latitude'], row['longitude'])
+            outside_count[lat_long] = outside_count.get(lat_long, 0+1)
+    
+
+    plot_maps(data, country_geometry_high_res, map_output, inside, outside_high_res, inside_count, file_path, country_geometry_low_res)
+
