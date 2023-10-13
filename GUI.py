@@ -80,7 +80,11 @@ def on_closing():
 if __name__ == '__main__':
     window=tkinter.Tk()
     window.title('Coordinate Validation Tool')
-    window.geometry('700x800')
+    window.geometry('700x400')
+    
+    scrollbar2 = tkinter.Scrollbar(window)
+    scrollbar2.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+    
     
     # add a title
     label = tkinter.Label(window, text='')
@@ -171,11 +175,8 @@ if __name__ == '__main__':
     button.pack()
     label = tkinter.Label(window, text='')
     label.pack()
-
-     canvas = tkinter.Canvas(window)
-    canvas.grid(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
-    scrollbar2 = tkinter.Scrollbar(window, orient=tkinter.VERTICAL, command=canvas.yview)
-    scrollbar2.grid(row=0, column=1, sticky="ns")
+    
+    
     
     window.protocol("WM_DELETE_WINDOW", on_closing)
     window.mainloop()
