@@ -7,7 +7,7 @@ import folium
 from shapely.geometry import Point
 import openpyxl
 from folium.plugins import HeatMap, MarkerCluster
-import time
+from os import path
 
 # intiate global variables
 data = None # this will hold the excel workfile
@@ -51,8 +51,6 @@ def choose_country():
     if selected_indices:
         index = selected_indices[0]  # Assuming you expect only one selection
         country_name = listbox.get(index)
-    progress_value += 5
-    progress['value'] = progress_value
         
 def choose_output():
     global map_output
@@ -62,10 +60,19 @@ def choose_output():
         map_output = listbox2.get(index)
         
 def get_file_name():
-    global file_name
+    global file_name, task_completed
     text = textentry_file.get()
     file_name = text
     
+def update_button_color():
+    global file_path
+    while True:
+        if path.exists(file_path):
+            button.config(bg="green")
+            break
+        else:
+            button.config(bg="red")      
+
 def get_file_path():
     global file_path
     root = tkinter.Tk()
@@ -73,12 +80,10 @@ def get_file_path():
     root.withdraw()
     my_file_path = str(my_file_path) + '/' + str(file_name) + '.html'
     file_path = my_file_path
-
+    update_button_color()
+    
 def geospatial_analysis():
-    global progress_value    
-    progress_value += 50
-    progress['value'] = progress_value
-
+    print('hello')
     
 def on_closing():
     window.quit()
@@ -99,43 +104,26 @@ if __name__ == '__main__':
     def set_scroll_to_top(event):
         canvas.yview_moveto(0)
     canvas.bind("<Map>", set_scroll_to_top)
-    
+
     # add a title
-    label = tkinter.Label(frame, text='')
-    label.pack()
-    label = tkinter.Label(frame, text='This is the Coordinate Validation Tool. Follow the Below Steps')
-    label.pack()
-    label = tkinter.Label(frame, text='')
-    label.pack()
-    label.pack_configure(pady=4)
-    label.focus_set()
-    
+    label = tkinter.Label(frame, text='').pack
+    label = tkinter.Label(frame, text='This is the Coordinate Validation Tool. Follow the Below Steps').pack()
+    label = tkinter.Label(frame, text='').pack(pady=4)
+
     # add a button to get the user to select the excel file
-    label = tkinter.Label(frame, text='    Step 1: Select the excel workbook containing the ID, lat and long coordinates')
-    label.pack()
-    button = tkinter.Button(frame, text='Choose File', command = get_excel_doc)
-    button.pack()
-    label = tkinter.Label(frame, text='')
-    label.pack()
-    label.pack_configure(pady=5)
+    label = tkinter.Label(frame, text='    Step 1: Select the excel workbook containing the ID, lat and long coordinates').pack()
+    button = tkinter.Button(frame, text='Choose File', command = get_excel_doc).pack()
+    label = tkinter.Label(frame, text='').pack(pady=5)
     
     # add a button to get the user to select the shapefile at the low resolution
-    label = tkinter.Label(frame, text='Step 2: Select the appropriate low resolution shapefile for your data')
-    label.pack()
-    button = tkinter.Button(frame, text='Choose File', command = get_shp_1)
-    button.pack()
-    label = tkinter.Label(frame, text='')
-    label.pack()
-    label.pack_configure(pady=5)
-    
+    label = tkinter.Label(frame, text='Step 2: Select the appropriate low resolution shapefile for your data').pack()
+    button = tkinter.Button(frame, text='Choose File', command = get_shp_1).pack()
+    label = tkinter.Label(frame, text='').pack(pady=5)
+        
     # add a button to get the user to select the shapefile at the high resolution
-    label = tkinter.Label(frame, text='Step 3: Select the appropriate high resolution shapefile for your data')
-    label.pack()
-    button = tkinter.Button(frame, text='Choose File', command = get_shp_2)
-    button.pack()
-    label = tkinter.Label(frame, text='')
-    label.pack()
-    label.pack_configure(pady=5)
+    label = tkinter.Label(frame, text='Step 3: Select the appropriate high resolution shapefile for your data').pack()
+    button = tkinter.Button(frame, text='Choose File', command = get_shp_2).pack()
+    label = tkinter.Label(frame, text='').pack(pady=5)
     
     # add a button to get the user input for country selected
     label = tkinter.Label(frame, text='Step 4: Type the name of the country, then hit confirm')
@@ -152,12 +140,10 @@ if __name__ == '__main__':
     button = tkinter.Button(frame, text='Confirm', command=choose_country)
     button.pack()
     label = tkinter.Label(frame, text='')
-    label.pack()
-    label.pack_configure(pady=5)
+    label.pack(pady=5)
 
     # add a button to get the user input for map output desired
-    label = tkinter.Label(frame, text='Step 5: Choose output map')
-    label.pack()
+    label = tkinter.Label(frame, text='Step 5: Choose output map').pack()
     listbox_frame2 = tkinter.Frame(frame)
     listbox_frame2.pack()
     listvar2 = tkinter.StringVar(listbox_frame2, value= ['Heatmap', 'Heatmap Overlap', 'Point Data Map', 'All'])
@@ -168,53 +154,34 @@ if __name__ == '__main__':
     button = tkinter.Button(frame, text='Confirm', command=choose_output)
     button.pack()
     label = tkinter.Label(frame, text='')
-    label.pack()
-    label.pack_configure(pady=5)
+    label.pack(pady=5)
     
     # add a button to get the desired file name
-    label = tkinter.Label(frame, text='Step 6: Choose the name you want to save the file in')
-    label.pack()
+    label = tkinter.Label(frame, text='Step 6: Choose the name you want to save the file in').pack()
     textentry_file = tkinter.Entry(frame)
     textentry_file.pack()
-    button = tkinter.Button(frame, text='Confirm', command = get_file_name)
-    button.pack()
-    label = tkinter.Label(frame, text='')
-    label.pack()
-    label.pack_configure(pady=5)
+    button = tkinter.Button(frame, text='Confirm', command = get_file_name).pack()
+    label = tkinter.Label(frame, text='').pack(pady=5)
     
     # add a button get the user to select the destination folder
-    label = tkinter.Label(frame, text='Step 7: Select the folder you would like your map saved to')
-    label.pack()
-    button = tkinter.Button(frame, text='Choose Folder', command = get_file_path)
-    button.pack()
-    label = tkinter.Label(frame, text='')
-    label.pack()
-    label.pack_configure(pady=5)
+    label = tkinter.Label(frame, text='Step 7: Select the folder you would like your map saved to').pack()
+    button = tkinter.Button(frame, text='Choose Folder', command = get_file_path).pack()
+    label = tkinter.Label(frame, text='').pack(pady=5)
     
-    # add a go button to get the desired file name
-    label = tkinter.Label(frame, text='Step 8: Start Analysis')
-    label.pack()
-    button = tkinter.Button(frame, text='Go', command = geospatial_analysis)
-    button.pack()
-    label = tkinter.Label(frame, text='')
-    label.pack()
-    label.pack_configure(pady=5)
+    # start analysis
+    label = tkinter.Label(frame, text='Step 8: Start Analysis').pack()
+    button = tkinter.Button(frame, text='Go', command = random).pack()
+    label = tkinter.Label(frame, text='').pack(pady=5)
     
-    # add a progress bar
-    progress = ttk.Progressbar(frame, orient="horizontal", length=200, mode="determinate")
-    progress.pack()
-    label = tkinter.Label(frame, text='Progress')
-    label.pack()
-    label.pack()
-    label.pack_configure(pady=5)
+    # Create the button
+    button = tkinter.Button(frame, text="Completed", command=get_file_path, bg="red")
+    button.pack(pady=5)
 
-    # Function to update the scroll region
+    # Add a scrollbar to the window
     def configure_scroll_region(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
-
     frame.bind("<Configure>", configure_scroll_region)
-    
-    # Add a scrollbar to the window
+        
     scrollbar = tkinter.Scrollbar(window, orient=tkinter.VERTICAL, command=canvas.yview)
     scrollbar.set(0, 0)
     scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
