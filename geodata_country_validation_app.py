@@ -1,369 +1,472 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": 11,
-   "id": "7befb401",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import tkinter\n",
-    "from tkinter import filedialog, messagebox\n",
-    "from tkinter import ttk\n",
-    "import geopandas as gpd\n",
-    "import pandas as pd\n",
-    "import folium\n",
-    "from shapely.geometry import Point\n",
-    "import openpyxl\n",
-    "from folium.plugins import HeatMap, MarkerCluster\n",
-    "from os import path\n",
-    "\n",
-    "# intiate global variables\n",
-    "data = None # this will hold the excel workfile\n",
-    "shapefile_low_res = None # this will hold the shapefile at a low resolution\n",
-    "shapefile_high_res = None # this will hold the shapefile at a high resolution\n",
-    "country_name = None # this will hold the variable that names the country \n",
-    "map_output = None # this will hold the map output wanted \n",
-    "file_name = None # this will hold the file name they want to save it as \n",
-    "file_path = None # this will hold the path link to the new file\n",
-    "\n",
-    "def get_excel_doc():\n",
-    "    global data \n",
-    "    root = tkinter.Tk()\n",
-    "    excel_doc = filedialog.askopenfilename()\n",
-    "    root.withdraw()\n",
-    "    if excel_doc.split(\".\")[-1] in [\"xlsx\", \"xls\"]:\n",
-    "        data_1 = pd.read_excel(excel_doc)\n",
-    "        data_1.columns = ['ID', 'latitude', 'longitude']\n",
-    "        data = data_1\n",
-    "    else:\n",
-    "        messagebox.showerror(title=\"file type error\", message=\"you chose the wrong file type, try again.\")\n",
-    "\n",
-    "def get_shp_1():\n",
-    "    global shapefile_low_res\n",
-    "    root = tkinter.Tk()\n",
-    "    my_file_path = filedialog.askopenfilename()\n",
-    "    root.withdraw()\n",
-    "    if my_file_path.split(\".\")[-1] in [\"shp\"]:\n",
-    "        shapefile_low_res = my_file_path\n",
-    "    else:\n",
-    "        messagebox.showerror(title=\"file type error\", message=\"you chose the wrong file type, try again.\")\n",
-    "        \n",
-    "def get_shp_2():\n",
-    "    global shapefile_high_res\n",
-    "    root = tkinter.Tk()\n",
-    "    my_file_path = filedialog.askopenfilename()\n",
-    "    root.withdraw()\n",
-    "    if my_file_path.split(\".\")[-1] in [\"shp\"]:\n",
-    "        shapefile_high_res = my_file_path\n",
-    "    else:\n",
-    "        messagebox.showerror(title=\"file type error\", message=\"you chose the wrong file type, try again.\")\n",
-    "\n",
-    "def choose_country():\n",
-    "    global country_name, progress_value\n",
-    "    selected_indices = listbox.curselection()\n",
-    "    if selected_indices:\n",
-    "        index = selected_indices[0]  # Assuming you expect only one selection\n",
-    "        country_name = listbox.get(index)\n",
-    "        \n",
-    "def choose_output():\n",
-    "    global map_output\n",
-    "    selected_indices = listbox2.curselection()\n",
-    "    if selected_indices:\n",
-    "        index = selected_indices[0]  # Assuming you expect only one selection\n",
-    "        map_output = listbox2.get(index)\n",
-    "        \n",
-    "def get_file_name():\n",
-    "    global file_name, task_completed\n",
-    "    text = textentry_file.get()\n",
-    "    file_name = text\n",
-    "\n",
-    "def get_file_path():\n",
-    "    global file_path\n",
-    "    root = tkinter.Tk()\n",
-    "    my_file_path = filedialog.askdirectory()\n",
-    "    root.withdraw()\n",
-    "    my_file_path = str(my_file_path) + '/' + str(file_name) + '.html'\n",
-    "    file_path = my_file_path\n",
-    "    \n",
-    "def finished_tasks():\n",
-    "    global file_path\n",
-    "    if path.exists(file_path):\n",
-    "            messagebox.showinfo(title=\"task completed\", message=\"All tasks are completed, you can now close all windows\")\n",
-    "        \n",
-    "def plot_maps(data, country_geometry_high_res, map_output, inside, outside_high_res, inside_count, file_path, country_geometry_low_res): \n",
-    "    \n",
-    "    map_plot = folium.Map(location=[data['latitude'].mean(), data['longitude'].mean()], zoom_starts=4, tiles='CartoDB positron')\n",
-    "    country_geojson = country_geometry_high_res.__geo_interface__\n",
-    "    folium.GeoJson(country_geojson, name='Country Boundary',style_function=lambda feature:{\n",
-    "                        'fillColor': 'lightyellow',\n",
-    "                        'color': 'black',\n",
-    "                        'weight': 1,\n",
-    "                        'fillOpacity': 0.3,      \n",
-    "                        }\n",
-    "                      ).add_to(map_plot)\n",
-    "    \n",
-    "    heat_data = [[row['latitude'], row['longitude']] for index, row in data.iterrows() if Point(row['longitude'], row['latitude']).within(country_geometry_low_res)]\n",
-    "    marker_cluster = folium.plugins.MarkerCluster(name=\"Coordinate Points\", options={'disableClusteringAtZoom':10},show=False).add_to(map_plot)\n",
-    "\n",
-    "    #overlay group\n",
-    "    overlay_group = folium.FeatureGroup(name='Overlay Layers',show=False)\n",
-    "    overlay_group.add_to(map_plot)\n",
-    "\n",
-    "    if map_output == 'Heatmap':\n",
-    "        HeatMap(heat_data,name=\"HeatMap\", show = False).add_to(map_plot)\n",
-    "\n",
-    "    elif map_output == 'Heatmap Overlay':\n",
-    "        HeatMap(heat_data,name=\"HeatMap\", show = False).add_to(map_plot)\n",
-    "        for lat_long,count in inside_count.items():\n",
-    "            folium.Circle(lat_long,popup={lat_long},\n",
-    "                            radius=count*5, color ='black', fill=True,fill_opacity=0.5).add_to(overlay_group)\n",
-    "\n",
-    "    elif map_output == 'Point Data Map':\n",
-    "        for lat_long,count in inside_count.items():\n",
-    "            folium.Marker(lat_long,popup=f\"Inside Boundaries<br>{lat_long}\",\n",
-    "                            icon=folium.Icon(color='green')).add_to(marker_cluster)\n",
-    "            folium.Circle(lat_long,popup={lat_long},\n",
-    "                            radius=count*5, color ='black', fill=True, fill_opacity=0.5).add_to(overlay_group)\n",
-    "    else:\n",
-    "        HeatMap(heat_data, name=\"HeatMap\", show = False).add_to(map_plot)\n",
-    "        for lat_long,count in inside_count.items():\n",
-    "            folium.Marker(lat_long,popup=f\"Inside Boundaries<br>{lat_long}\",\n",
-    "                            icon=folium.Icon(color='green')).add_to(marker_cluster)\n",
-    "            folium.Circle(lat_long,popup={lat_long},\n",
-    "                            radius=count*5, color ='black', fill=True, fill_opacity=0.5).add_to(overlay_group)\n",
-    "\n",
-    "    for ID,lat,lon in outside_high_res:\n",
-    "        folium.Marker(location=[lat,lon], popup=f\"Outside Boundaries<br>ID:{ID}<br>{lat}<br>{lon}\",\n",
-    "                            icon=folium.Icon(color='red')).add_to(map_plot)\n",
-    "\n",
-    "    # Adding legend for differentiating Inside and Outside coordinate points\n",
-    "    legend_html = \"\"\"\n",
-    "        <div style=\"position: fixed; bottom:30px; right:30px; z-index:9999; font-size:11px;\">\n",
-    "            <p><i class=\"fa fa-circle fa-1x\" style=\"color:green\"></i> Inside Boundary</p>\n",
-    "            <p><i class=\"fa fa-circle fa-1x\" style=\"color:red\"></i> Outside Boundary</p>\n",
-    "        </div>\n",
-    "        \"\"\"\n",
-    "    map_plot.get_root().html.add_child(folium.Element(legend_html))\n",
-    "\n",
-    "    # Adding various tiles option incoorporated within Folium library\n",
-    "    folium.TileLayer('CartoDB positron').add_to(map_plot) #Selected as Default\n",
-    "    folium.TileLayer('OpenStreetMap').add_to(map_plot) \n",
-    "    folium.TileLayer('Stamen Terrain').add_to(map_plot)\n",
-    "    folium.TileLayer('Stamen Toner').add_to(map_plot)\n",
-    "    folium.TileLayer('esrinatgeoworldmap', name='Esri NatGeo WorldMap', attr=' Esri, Delorme, NAVTEQ').add_to(map_plot)\n",
-    "\n",
-    "    # Full Screen option\n",
-    "    folium.plugins.Fullscreen().add_to(map_plot)\n",
-    "\n",
-    "    # Layer control for each layers added can be checked & unchecked while selecting\n",
-    "    folium.LayerControl(position='topright',collapsed=True, autoZIndex=True).add_to(map_plot)\n",
-    "\n",
-    "    # Saved the outputs\n",
-    "    map_plot.save(file_path)  \n",
-    "    \n",
-    "    finished_tasks()\n",
-    "    \n",
-    "def geospatial_analysis():\n",
-    "    global data, shapefile_low_res, shapefile_high_res, country_name, map_output, file_name, file_path\n",
-    "    \n",
-    "    counter = 0\n",
-    "    my_list = [data, shapefile_low_res, shapefile_high_res, country_name, map_output, file_name, file_path]\n",
-    "    for i in my_list:\n",
-    "        if (i is None):\n",
-    "            counter += 1\n",
-    "            break\n",
-    "        else:\n",
-    "            continue\n",
-    "        \n",
-    "    if counter == 0:\n",
-    "    \n",
-    "        # get the shapefiles\n",
-    "        gdf_low_res = gpd.read_file(shapefile_low_res)\n",
-    "        gdf_high_res = gpd.read_file(shapefile_high_res)\n",
-    "\n",
-    "        # isolate the geometries\n",
-    "        country_gdf_low_res = gdf_low_res.loc[gdf_low_res['NAME'] == country_name] # isolate row\n",
-    "        country_geometry_low_res = country_gdf_low_res.geometry.iloc[0] # get multipolygon\n",
-    "        country_geometry_buffer = country_geometry_low_res.buffer(-0.15)\n",
-    "        country_gdf_high_res = gdf_high_res.loc[gdf_high_res['NAME'] == country_name] # isolate row\n",
-    "        country_geometry_high_res = country_gdf_high_res.geometry.iloc[0] # get multipolygon\n",
-    "\n",
-    "        # start variables for coordinate lists and counters\n",
-    "        inside = []\n",
-    "        outside_low_res = pd.DataFrame(columns=data.columns)\n",
-    "        outside_high_res = []\n",
-    "        inside_count = {}\n",
-    "        outside_count = {}\n",
-    "        total_count = 0\n",
-    "\n",
-    "        # check if it is in the low resolution file\n",
-    "        for idx, row in data.iterrows():\n",
-    "            location = Point(row['longitude'], row['latitude'])\n",
-    "            total_count += 1\n",
-    "            if location.within(country_geometry_buffer):\n",
-    "                inside.append((row['ID'], row['latitude'], row['longitude']))\n",
-    "                lat_long = (row['latitude'], row['longitude'])\n",
-    "                inside_count[lat_long] = inside_count.get(lat_long, 0)+1\n",
-    "            # add it to a temporary df if point is outside of low_res\n",
-    "            else:\n",
-    "                df_temporary = pd.DataFrame(data = [row], columns=outside_low_res.columns)\n",
-    "                outside_low_res = pd.concat([outside_low_res, df_temporary], ignore_index=True)\n",
-    "\n",
-    "        # check for remaining points if they are in the high resolution file\n",
-    "        for idx, row in outside_low_res.iterrows():\n",
-    "            location = Point(row['longitude'], row['latitude'])\n",
-    "            if location.within(country_geometry_high_res):\n",
-    "                inside.append((row['ID'], row['latitude'], row['longitude']))\n",
-    "                lat_long = (row['latitude'], row['longitude'])\n",
-    "                inside_count[lat_long] = inside_count.get(lat_long, 0)+1\n",
-    "                outside_low_res.drop(idx, inplace=True)\n",
-    "            # add it to the list of coordinates outside of the zone\n",
-    "            else:             \n",
-    "                outside_high_res.append((row['ID'], row['latitude'], row['longitude']))\n",
-    "                lat_long = (row['latitude'], row['longitude'])\n",
-    "                outside_count[lat_long] = outside_count.get(lat_long, 0)+1\n",
-    "\n",
-    "        # save some outputs\n",
-    "        invalid_LL_file_path = file_path.replace(f'{file_name}.html', 'invalid_LL.xlsx')\n",
-    "        outside_low_res.to_excel(invalid_LL_file_path, index=False)\n",
-    "        user_reporting_file_path = file_path.replace(f'{file_name}.html', 'user_reporting.txt')\n",
-    "        total = len(inside) + len(outside_high_res)\n",
-    "        percentage = (len(outside_high_res) / total) * 100\n",
-    "        file = open(user_reporting_file_path, \"w\")\n",
-    "        file.write(f'Total points inside: {len(inside)} \\n' \n",
-    "                   f'Total points outside: {len(outside_high_res)} \\n' \n",
-    "                   f'Total points: {total} \\n' \n",
-    "                   f'Percentage of data outside: {percentage:.1f}% \\n' )\n",
-    "        file.close()\n",
-    "\n",
-    "        plot_maps(data, country_geometry_high_res, map_output, inside, outside_high_res, inside_count, file_path, country_geometry_low_res)\n",
-    "\n",
-    "    else:\n",
-    "        messagebox.showerror(title=\"empty fields\", message=\"there are empty fields, please go back and ensure all steps have been completed.\")\n",
-    "        \n",
-    "    \n",
-    "def on_closing():\n",
-    "    window.quit()\n",
-    "    window.destroy()\n",
-    "\n",
-    "if __name__ == '__main__':\n",
-    "    \n",
-    "    # create a window object\n",
-    "    window=tkinter.Tk()\n",
-    "    window.title('Coordinate Validation Tool')\n",
-    "    window.geometry('448x400')\n",
-    "    \n",
-    "    # Create a canvas that fills the entire window\n",
-    "    canvas = tkinter.Canvas(window)\n",
-    "    canvas.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)\n",
-    "    frame = tkinter.Frame(canvas)\n",
-    "    canvas.create_window(3, 0, window=frame)\n",
-    "    def set_scroll_to_top(event):\n",
-    "        canvas.yview_moveto(0)\n",
-    "    canvas.bind(\"<Map>\", set_scroll_to_top)\n",
-    "\n",
-    "    # add a title\n",
-    "    label = tkinter.Label(frame, text='This is the Coordinate Validation Tool. Follow the Below Steps').pack(pady=5)\n",
-    "\n",
-    "    # add a button to get the user to select the excel file\n",
-    "    label = tkinter.Label(frame, text='    Step 1: Select the excel workbook containing the ID, lat and long coordinates').pack()\n",
-    "    button = tkinter.Button(frame, text='Choose File', command = get_excel_doc).pack(pady=15)\n",
-    "    \n",
-    "    # add a button to get the user to select the shapefile at the low resolution\n",
-    "    label = tkinter.Label(frame, text='Step 2: Select the appropriate low resolution shapefile for your data').pack()\n",
-    "    button = tkinter.Button(frame, text='Choose File', command = get_shp_1).pack(pady=15)\n",
-    "        \n",
-    "    # add a button to get the user to select the shapefile at the high resolution\n",
-    "    label = tkinter.Label(frame, text='Step 3: Select the appropriate high resolution shapefile for your data').pack()\n",
-    "    button = tkinter.Button(frame, text='Choose File', command = get_shp_2).pack(pady=15)\n",
-    "    \n",
-    "    # add a listbox to get user to select country, add scrollbar and confirm button\n",
-    "    label = tkinter.Label(frame, text='Step 4: Select the country, then hit confirm').pack()\n",
-    "    listbox_frame = tkinter.Frame(frame)\n",
-    "    listbox_frame.pack()\n",
-    "    listvar = tkinter.StringVar(value=['Cuba', 'Bahamas', 'Bermuda', 'Brazil', 'Dominican Republic', 'Haiti', 'El Salvador', 'Guatemala', 'Costa Rica', 'Colombia', 'Turkey', 'Trinidad and Tobago', 'Grenada', 'Barbados', 'Saint Lucia', 'Dominica', 'Antigua and Barbuda', 'Saint Kitts and Nevis', 'Anguilla', 'Jamaica', 'Peru', 'Nicaragua', 'Argentina', 'Curacao', 'Aruba', 'U.S. Virgin Islands', 'Saint Barthelemy', 'Puerto Rico', 'Cayman Islands', 'Bolivia', 'Saint Martin', 'Suriname', 'Paraguay', 'Montserrat', 'Malta', 'Portugal'])\n",
-    "    listbox = tkinter.Listbox(listbox_frame, listvariable=listvar, height=5)\n",
-    "    listbox.grid(row=0, column=0)\n",
-    "    scrollbar = tkinter.Scrollbar(listbox_frame, orient=tkinter.VERTICAL, command=listbox.yview)\n",
-    "    scrollbar.grid(row=0, column=1, sticky=tkinter.NS)\n",
-    "    button = tkinter.Button(frame, text='Confirm', command=choose_country).pack(pady=15)\n",
-    "\n",
-    "    # add a listbox to get user to select output, add scrollbar and confirm button\n",
-    "    label = tkinter.Label(frame, text='Step 5: Select the output map, then hit confirm').pack()\n",
-    "    listbox_frame2 = tkinter.Frame(frame)\n",
-    "    listbox_frame2.pack()\n",
-    "    listvar2 = tkinter.StringVar(listbox_frame2, value= ['Heatmap', 'Heatmap Overlap', 'Point Data Map', 'All'])\n",
-    "    listbox_frame = tkinter.Frame(frame)\n",
-    "    listbox_frame.pack()\n",
-    "    listbox2 = tkinter.Listbox(listbox_frame, listvariable=listvar2, height=4)\n",
-    "    listbox2.pack()\n",
-    "    button = tkinter.Button(frame, text='Confirm', command=choose_output)\n",
-    "    button.pack(pady=15)\n",
-    "    \n",
-    "    # add a button to get the desired file name\n",
-    "    label = tkinter.Label(frame, text='Step 6: Choose the name you want to save the file in').pack()\n",
-    "    textentry_file = tkinter.Entry(frame)\n",
-    "    textentry_file.pack()\n",
-    "    button = tkinter.Button(frame, text='Confirm', command = get_file_name).pack(pady=15)\n",
-    "    \n",
-    "    # add a button get the user to select the destination folder\n",
-    "    label = tkinter.Label(frame, text='Step 7: Select the folder you would like your outputs saved to').pack()\n",
-    "    button = tkinter.Button(frame, text='Choose Folder', command = get_file_path).pack(pady=15)\n",
-    "    \n",
-    "    # start analysis\n",
-    "    label = tkinter.Label(frame, text='Step 8: Start Analysis').pack()\n",
-    "    button = tkinter.Button(frame, text='Go', command = geospatial_analysis).pack()\n",
-    "    label = tkinter.Label(frame, text='').pack(pady=15)\n",
-    "\n",
-    "    # Add a scrollbar to the window\n",
-    "    def configure_scroll_region(event):\n",
-    "        canvas.configure(scrollregion=canvas.bbox(\"all\"))\n",
-    "    frame.bind(\"<Configure>\", configure_scroll_region)\n",
-    "    scrollbar = tkinter.Scrollbar(window, orient=tkinter.VERTICAL, command=canvas.yview)\n",
-    "    scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)\n",
-    "    canvas.configure(yscrollcommand=scrollbar.set)\n",
-    "    \n",
-    "    window.protocol(\"WM_DELETE_WINDOW\", on_closing)\n",
-    "    window.mainloop()\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "6ff19691",
-   "metadata": {},
-   "outputs": [],
-   "source": []
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "5159423b",
-   "metadata": {},
-   "outputs": [],
-   "source": []
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.11.5"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QComboBox, QTextEdit, QProgressBar
+from PyQt5.QtCore import Qt
+import geopandas as gpd
+import pandas as pd
+import folium
+from shapely.geometry import Point
+from folium.plugins import HeatMap
+from os import path
+from geopy.geocoders import Nominatim
+import glob
+import openpyxl
+import xlrd
+import time 
+
+class CoordinateValidationTool(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+
+        self.excel_path = None
+        self.data = None
+        self.shapefile_low_res = None
+        self.shapefile_high_res = None
+        self.country_name = None
+        self.file_path = None
+        self.lat_col = None
+        self.long_col = None
+        self.loc_col = None
+        
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setGeometry(400, 410, 250, 20)
+        self.progress_bar.setOrientation(Qt.Horizontal)
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setValue(0) 
+
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle('Coordinate Validation Tool')
+        self.setGeometry(250, 250, 650, 650)
+
+        '''GET EXCEL'''
+        self.label1 = QLabel('Step 1: Select the excel workbook', self)
+        self.label1.setGeometry(30, 20, 400, 20)
+        self.btn1 = QPushButton('Choose File', self)
+        self.btn1.setGeometry(30, 50, 100, 30)
+        self.btn1.clicked.connect(self.get_excel_doc)
+
+        '''GET COUNTRY'''
+        self.label2 = QLabel('Step 2: Select the country, then hit confirm', self)
+        self.label2.setGeometry(30, 100, 400, 20)
+        self.listbox = QComboBox(self)
+        self.listbox.setGeometry(30, 130, 200, 30)
+        countries = glob.glob(r'J:\cms\External\Team Members\Adam Warren\LAC COUNTRY SHAPEFILES - DO NOT MOVE\2. World LowRes\*\\')
+        countries_list = []
+        for string in countries:
+            split_parts = string.rsplit("\\", 2)
+            country = split_parts[1]
+            countries_list.append(country)
+        self.listbox.addItems(countries_list)
+        self.listbox.setCurrentIndex(-1)
+        self.btn2 = QPushButton('Confirm', self)
+        self.btn2.setGeometry(30, 160, 100, 30)
+        self.btn2.clicked.connect(self.choose_country)
+        
+        '''GET OUTPUT MAP'''
+        self.label3 = QLabel('Step 3: Select the output map, then hit confirm', self)
+        self.label3.setGeometry(30, 210, 500, 20)
+        self.listbox2 = QComboBox(self)
+        self.listbox2.setGeometry(30, 240, 200, 30)
+        self.listbox2.addItems(['Heatmap', 'Heatmap Overlay', 'Point Data Map', 'All'])
+        self.listbox2.setCurrentIndex(-1)
+        self.btn3 = QPushButton('Confirm', self)
+        self.btn3.setGeometry(30, 270, 100, 30)
+        self.btn3.clicked.connect(self.choose_output)
+
+        self.label4 = QLabel('Step 4: Map your columns', self)
+        self.label4.setGeometry(30, 320, 500, 20)
+        self.label5 = QLabel('Locnum', self)
+        self.label5.setGeometry(30, 350, 100, 30)
+        self.listbox3 = QComboBox(self)
+        self.listbox3.setGeometry(150, 350, 200, 30)
+        self.listbox3.addItems([""])
+        self.listbox3.setCurrentIndex(-1)
+
+        self.label6 = QLabel('Latitude', self)
+        self.label6.setGeometry(30, 380, 100, 30)
+        self.listbox4 = QComboBox(self)
+        self.listbox4.setGeometry(150, 380, 200, 30)
+        self.listbox4.addItems([""])
+        self.listbox4.setCurrentIndex(-1)
+
+        self.label7 = QLabel('Longitude', self)
+        self.label7.setGeometry(30, 410, 100, 30)
+        self.listbox5 = QComboBox(self)
+        self.listbox5.setGeometry(150, 410, 200, 30)
+        self.listbox5.addItems([""])
+        self.listbox5.setCurrentIndex(-1)
+
+        self.btn9 = QPushButton('Confirm', self)
+        self.btn9.setGeometry(150, 440, 100, 30)
+        self.btn9.clicked.connect(self.standardize_cols)
+
+        self.label8 = QLabel('Step 5: Start Analysis', self)
+        self.label8.setGeometry(20, 490, 300, 20)
+
+        self.btn5 = QPushButton('Go', self)
+        self.btn5.setGeometry(20, 520, 100, 30)
+        self.btn5.clicked.connect(self.geospatial_analysis)
+
+        self.textOutput = QTextEdit(self)
+        self.textOutput.setGeometry(400, 30, 230, 380)
+        self.textOutput.setReadOnly(True)
+        
+        self.exit_btn = QPushButton('Exit', self)
+        self.exit_btn.setGeometry(20, 550, 100, 30)  # Position the button at the top-right corner
+        self.exit_btn.clicked.connect(self.exit_app)
+        
+        self.reverse_geocode_btn = QPushButton('Run Reverse Geocode', self)
+        self.reverse_geocode_btn.setGeometry(20, 580, 200, 30)
+        self.reverse_geocode_btn.clicked.connect(self.reverse_geocode)
+
+        self.show()
+
+    def get_excel_doc(self):
+        self.excel_path, _ = QFileDialog.getOpenFileName(self, 'Select Excel File')
+        if self.excel_path and self.excel_path.split(".")[-1] in ["xlsx", "xls"]:
+            self.data = pd.read_excel(self.excel_path)
+            self.append_text('Excel file selected.')
+            file_x = self.excel_path.rsplit('/', 1)[0]
+            self.file_path = f"{file_x}/map_output.html"
+            self.update_listbox()
+        elif self.excel_path and self.excel_path.split(".")[-1] in ["csv"]:
+            self.data = pd.read_csv(self.excel_path, encoding='latin-1')
+            self.append_text('Excel file selected.')
+            file_x = self.excel_path.rsplit('/', 1)[0]
+            self.file_path = f"{file_x}/map_output.html"
+            self.update_listbox()
+        else:
+            self.append_text('Please choose a valid Excel file.')
+
+    def choose_country(self):
+        selected_country = self.listbox.currentText()
+        if selected_country:
+            self.country_name = selected_country
+            base_path = rf'J:\cms\External\Team Members\Adam Warren'
+            if self.country_name == 'Saint Vincent and the Grenadines':
+                self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
+                                                '2. World LowRes', 'Saint Vincent and the Grenadines',
+                                                'Saint Vincent and the Grenadines.shp')
+                
+            else:
+                self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
+                                                '2. World LowRes', self.country_name, f'{self.country_name}.shp')
+            self.shapefile_high_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
+                                                '5. World HighRes', self.country_name, f'{self.country_name}.shp')
+            self.append_text(f'Country selected: {self.country_name}')
+        else:
+            self.append_text('Please select a country.')
+
+    def choose_output(self):
+        selected_output = self.listbox2.currentText()
+        if selected_output:
+            self.map_output = selected_output
+            self.append_text(f'Output map selected: {self.map_output}')
+        else:
+            self.append_text('Please select an output map type.')
+
+    def append_text(self, text):
+        self.textOutput.append(text)
+        self.textOutput.verticalScrollBar().setValue(self.textOutput.verticalScrollBar().maximum())
+        self.textOutput.update()
+        
+    def plot_maps(self, data, country_geometry_high_res, map_output, outside_high_res, inside_count, file_path, country_geometry_low_res, inside_df, outside_low_res):    
+    
+        if len(inside_df) > 0 or len(outside_low_res) > 0:
+
+            if len(inside_df) > 0:
+                map_plot = folium.Map(location=[inside_df['latitude'].mean(), inside_df['longitude'].mean()], zoom_starts=4, tiles='CartoDB positron')
+            else:
+                map_plot = folium.Map(location=[self.data['latitude'].mean(), self.data['longitude'].mean()], zoom_starts=4, tiles='CartoDB positron')
+
+            map_plot = folium.Map(location=[data['latitude'].mean(), data['longitude'].mean()], zoom_starts=4, tiles='CartoDB positron')
+            country_geojson = country_geometry_high_res.__geo_interface__
+            folium.GeoJson(country_geojson, name='Country Boundary',style_function=lambda feature:{
+                                'fillColor': 'lightyellow',
+                                'color': 'black',
+                                'weight': 1,
+                                'fillOpacity': 0.3,      
+                                }
+                            ).add_to(map_plot)
+
+            heat_data = [[row['latitude'], row['longitude']] for index, row in inside_df.iterrows()]
+            # heat_data = [[row['latitude'], row['longitude']] for index, row in data.iterrows() if Point(row['longitude'], row['latitude']).within(country_geometry_low_res)]
+            marker_cluster = folium.plugins.MarkerCluster(name="Coordinate Points", options={'disableClusteringAtZoom':10},show=False).add_to(map_plot)
+
+        # overlay group
+        overlay_group = folium.FeatureGroup(name='Overlay Layers',show=False)
+        overlay_group.add_to(map_plot)
+
+        if map_output == 'Heatmap':
+            HeatMap(heat_data,name="HeatMap", show = False).add_to(map_plot)
+
+        elif map_output == 'Heatmap Overlay':
+            HeatMap(heat_data,name="HeatMap", show = False).add_to(map_plot)
+            for lat_long,count in inside_count.items():
+                folium.Circle(lat_long,popup={lat_long},
+                                radius=count*5, color ='black', fill=True,fill_opacity=0.5).add_to(overlay_group)
+
+        elif map_output == 'Point Data Map':
+            for lat_long,count in inside_count.items():
+                folium.Marker(lat_long,popup=f"Inside Boundaries<br>{lat_long}",
+                                icon=folium.Icon(color='green')).add_to(marker_cluster)
+                folium.Circle(lat_long,popup={lat_long},
+                                radius=count*5, color ='black', fill=True, fill_opacity=0.5).add_to(overlay_group)
+        else:
+            HeatMap(heat_data, name="HeatMap", show = False).add_to(map_plot)
+            for lat_long,count in inside_count.items():
+                folium.Marker(lat_long,popup=f"Inside Boundaries<br>{lat_long}",
+                                icon=folium.Icon(color='green')).add_to(marker_cluster)
+                folium.Circle(lat_long,popup={lat_long},
+                                radius=count*5, color ='black', fill=True, fill_opacity=0.5).add_to(overlay_group)
+
+        for ID,lat,lon in outside_high_res:
+            folium.Marker(location=[lat,lon], popup=f"Outside Boundaries<br>ID:{ID}<br>{lat}<br>{lon}",
+                                icon=folium.Icon(color='red')).add_to(map_plot)
+
+        # Adding legend for differentiating Inside and Outside coordinate points
+        legend_html = """
+            <div style="position: fixed; bottom:30px; right:30px; z-index:9999; font-size:11px;">
+                <p><i class="fa fa-circle fa-1x" style="color:green"></i> Inside Boundary</p>
+                <p><i class="fa fa-circle fa-1x" style="color:red"></i> Outside Boundary</p>
+            </div>
+            """
+        map_plot.get_root().html.add_child(folium.Element(legend_html))
+
+        # Adding various tiles option incoorporated within Folium library
+        folium.TileLayer('CartoDB positron').add_to(map_plot) #Selected as Default
+        folium.TileLayer('OpenStreetMap').add_to(map_plot)
+        folium.TileLayer(tiles = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                attr = 'Esri',
+                name = 'Esri Satellite',
+                overlay = False,
+                control = True
+               ).add_to(map_plot)
+        folium.TileLayer('esrinatgeoworldmap', name='Esri NatGeo WorldMap', attr=' Esri, Delorme, NAVTEQ').add_to(map_plot)
+
+        # Full Screen option
+        folium.plugins.Fullscreen().add_to(map_plot)
+
+        # Layer control for each layers added can be checked & unchecked while selecting
+        folium.LayerControl(position='topright',collapsed=True, autoZIndex=True).add_to(map_plot)
+
+        # Saved the outputs
+        map_plot.save(file_path)  
+        
+    def update_listbox(self):
+        
+        self.listbox3.clear()
+        self.listbox4.clear()
+        self.listbox5.clear()
+        columns = self.data.columns.tolist()
+        self.listbox3.addItems(columns)
+        self.listbox4.addItems(columns)
+        self.listbox5.addItems(columns)
+
+    def standardize_cols(self):
+        self.loc_col = self.listbox3.currentText()
+        self.lat_col = self.listbox4.currentText()
+        self.long_col = self.listbox5.currentText()
+        self.append_text(f'Locnum Column selected: {self.loc_col}')
+        self.append_text(f'Latitude Column selected: {self.lat_col}')
+        self.append_text(f'Longitude Column selected: {self.long_col}')
+        
+    def geospatial_analysis(self):
+        i = 0
+        try:
+            
+            # get all the geometries and shapefiles
+            gdf_low_res = gpd.read_file(self.shapefile_low_res)
+            gdf_high_res = gpd.read_file(self.shapefile_high_res) 
+            country_gdf_low_res = gdf_low_res.loc[gdf_low_res['NAME'] == self.country_name]
+            country_geometry_low_res = country_gdf_low_res.geometry.iloc[0]
+            country_geometry_buffer = country_geometry_low_res.buffer(-0.1)
+            country_gdf_high_res = gdf_high_res.loc[gdf_high_res['NAME'] == self.country_name]
+            country_geometry_high_res = country_gdf_high_res.geometry.iloc[0]
+            minx, maxx, miny, maxy = gdf_low_res.iloc[0].geometry.bounds
+            x_list = [minx, maxx]
+            x_list.sort()
+            y_list = [miny, maxy]
+            y_list.sort()         
+            
+            self.append_text('Shapefiles successfully downloaded.')
+            self.update_progress(20)
+            
+            # standardize the column names after being mapped
+            self.data = self.data.rename(columns={f'{self.lat_col}': 'latitude', f'{self.long_col}': 'longitude', f'{self.loc_col}': 'ID'})      
+
+            # add in a dataframe for the invalid data  
+            nan_data = pd.DataFrame(columns=self.data.columns)
+
+            # check if the row contains all necessary information
+            column_names = self.data.columns.tolist()
+                
+            # initialise variables to store analysed outcomes
+            inside = []
+            inside_id = []
+            outside_low_res = pd.DataFrame(columns=self.data.columns)
+            outside_bounds = pd.DataFrame(columns=self.data.columns)
+            outside_high_res = []
+            inside_count = {}
+            outside_count = {}
+                
+            i = 1
+
+            for idx, row in self.data.iterrows():
+                
+                if row[column_names].isnull().any():
+                    nan_data = pd.concat([nan_data, row.to_frame().T])
+                    self.data.drop(idx, inplace=True)
+                    print('row dropped due to null data')
+                    continue
+                
+                # check if the correct data type has been inputted into the column
+                try:
+                    self.data.at[idx, 'latitude'] = float(row['latitude'])
+                    self.data.at[idx, 'longitude'] = float(row['longitude'])
+                except Exception:
+                    nan_data = pd.concat([nan_data, row.to_frame().T])
+                    self.data.drop(idx, inplace=True)
+                    print('row dropped due to wrong data type')
+                    continue
+            
+            for idx, row in self.data.iterrows():
+
+                print(i)
+                i += 1
+                
+                # quickly remove data in incompatible zones
+                if x_list[0] <= row['longitude'] <= x_list[1] == False:
+                    outside_bounds = pd.concat([outside_bounds, row.to_frame().T])
+                    self.data.drop(idx, inplace=True)
+                    print('row dropped due to not in bounds')
+                if y_list[0] <= row['latitude'] <= y_list[1] == False:
+                    outside_bounds = pd.concat([outside_bounds, row.to_frame().T])
+                    self.data.drop(idx, inplace=True)
+                    print('row dropped due to not in bounds')
+                    continue
+                
+                location = Point(row['longitude'], row['latitude'])
+                lat_long = (row['latitude'], row['longitude'])
+
+                # add to out variables
+                if location.within(country_geometry_buffer):
+                    inside.append((row['ID'], row['latitude'], row['longitude']))
+                    inside_count[lat_long] = inside_count.get(lat_long, 0) + 1
+                    inside_id.append(row['ID'])
+                else:
+                    df_temporary = pd.DataFrame(data=[row], columns=outside_low_res.columns)
+                    outside_low_res = pd.concat([outside_low_res, df_temporary], ignore_index=True)
+
+            self.append_text('Geospatial analysis at low resolution finished.')
+
+            for idx, row in outside_low_res.iterrows():
+                location = Point(row['longitude'], row['latitude'])
+                lat_long = (row['latitude'], row['longitude'])
+                # add to our variables
+                if location.within(country_geometry_high_res):
+                    inside.append((row['ID'], row['latitude'], row['longitude']))
+                    inside_count[lat_long] = inside_count.get(lat_long, 0) + 1
+                    outside_low_res.drop(idx, inplace=True)
+                else:
+                    outside_high_res.append((row['ID'], row['latitude'], row['longitude']))
+                    outside_count[lat_long] = outside_count.get(lat_long, 0) + 1
+            
+            outside_low_res = pd.concat([outside_low_res, outside_bounds])
+
+            self.append_text('Geospatial analysis at high resolution finished.')
+                                   
+            self.update_progress(50)
+
+            inside_df = self.data[self.data['ID'].isin(inside_id)]
+            inside_file_path = self.file_path.replace('map_output.html', 'inside_LL.xlsx')
+            invalid_LL_file_path = self.file_path.replace('map_output.html', 'invalid_LL.xlsx')
+            outside_low_res.to_csv(invalid_LL_file_path, index=False)
+            print('outside_excel_made')
+            inside_df.to_csv(inside_file_path, index=False)
+            print('inside_excel_made')
+            self.append_text('Invalid LatLong excel file successfully created.')
+
+            user_reporting_file_path = self.file_path.replace('map_output.html', 'user_reporting.txt')
+            total = len(inside) + len(outside_high_res) + len(nan_data) 
+            percentage = (len(outside_high_res) / total) * 100
+
+            with open(user_reporting_file_path, "w") as file:
+                file.write(f'Total points inside: {len(inside)} \n'
+                           f'Total points outside: {len(outside_high_res)} \n'
+                           f'Total incomplete data points: {len(nan_data)} \n'
+                           f'Total points: {total} \n'
+                           f'Percentage of data outside: {percentage:.1f}% \n')
+            print('user_reporting_made')
+
+            # Call the plot_maps method with the relevant data
+            self.plot_maps(self.data, country_geometry_high_res, self.map_output, outside_high_res, inside_count, self.file_path, country_geometry_low_res, inside_df, outside_low_res)
+            self.append_text('Map output successfully created.')
+            self.append_text('Geospatial analysis completed.')
+
+            self.update_progress(80) 
+        
+         
+        except Exception as e:
+            my_list = [self.data, self.shapefile_low_res, self.shapefile_high_res, self.country_name, self.map_output, self.file_path, self.lat_col, self.long_col, self.loc_col]
+            counter = 0
+            for i in my_list:
+                if i is None:
+                    counter += 1
+                    break
+                else:
+                    continue
+            if counter != 0:
+                self.append_text(f'Not all fields were satisfied. Please ensure all inputs necessary have been inputted correctly')
+            else:
+                self.append_text(f'Error during geospatial analysis: {str(e)}')
+                           
+            
+        self.update_progress(100)
+        
+    def reverse_geocode(self):
+        if self.excel_path:
+            invalid_LL_file_path = self.file_path.replace(f'map_output.html', 'invalid_LL.xlsx')
+            if path.exists(invalid_LL_file_path):
+                geolocator = Nominatim(user_agent="geoapiExercises")
+                df = pd.read_excel(invalid_LL_file_path)
+                locations = []
+                for idx, row in df.iterrows():
+                    try:
+                        location = geolocator.reverse(f"{row['latitude']}, {row['longitude']}")
+                        if location:
+                            locations.append(location.address)
+                        else:
+                            locations.append("N/A")
+                    except:
+                        locations.append("N/A")
+                df['Country'] = locations
+                df.to_excel(invalid_LL_file_path, index=False)
+                self.append_text(f'Reverse geocoding completed. Updated file: {invalid_LL_file_path}')
+            else:
+                self.append_text('Invalid_LL.xlsx file does not exist.')
+        else:
+            self.append_text('Please select an Excel file first.')
+       
+    def update_progress(self, progress_value):
+        self.progress_bar.setValue(progress_value)
+    
+    def exit_app(self):
+        self.close()
+           
+def main():
+    
+    app = QApplication(sys.argv)
+    window = CoordinateValidationTool()
+    return app.exec_()
+
+if __name__ == '__main__':
+    start_time = time.time()
+    exit_code = main()
+    end_time = time.time()
+    print(end_time - start_time)
+    sys.exit(exit_code)  
+    
