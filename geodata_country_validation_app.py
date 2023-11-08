@@ -275,7 +275,7 @@ class CoordinateValidationTool(QMainWindow):
         self.append_text(f'Longitude Column selected: {self.long_col}')
         
     def geospatial_analysis(self):
-        i = 0
+        
         try:
             
             # get all the geometries and shapefiles
