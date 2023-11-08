@@ -12,6 +12,7 @@ import glob
 import openpyxl
 from rtree.index import Index
 import numpy
+import time
 
 class CoordinateValidationTool(QMainWindow):
     
@@ -149,12 +150,14 @@ class CoordinateValidationTool(QMainWindow):
                         popup=f'''<h5 style="width: 120px;">Ambiguity</h5><p style="width: 120px;">Cresta Stated: {polygon_stated}<br> Cresta Found: {polygon_found}<br>Count: {count}<br>Latitude: {lat_long[0]}<br>Longitude: {lat_long[1]}</p>''',
                         max_width=1500, icon=folium.Icon(color='orange')).add_to(cresta_ambiguity_cluster)
         
+        '''
         # Add markers for points inside the cresta
         inside_cluster = MarkerCluster(name="Correctly Geocoded Coordinate Points", options={'disableClusteringAtZoom':10},show=False).add_to(m)
         for (lat_long, polygon), info in inside_points_dict.items():
             count = info['count']
-            folium.Marker(lat_long, popup=f'''<h5 style="width: 120px;">Inside</h5><p style="width: 120px;">Cresta: {polygon}<br>Count: {count}<br>Latitude: {lat_long[0]}<br>Longitude: {lat_long[1]}</p>''',
+            folium.Marker(lat_long, popup=f"""<h5 style="width: 120px;">Inside</h5><p style="width: 120px;">Cresta: {polygon}<br>Count: {count}<br>Latitude: {lat_long[0]}<br>Longitude: {lat_long[1]}</p>""",
                         max_width=1500, icon=folium.Icon(color='green')).add_to(inside_cluster)
+        '''
 
         # Add markers for points outside the cresta
         outside_cluster = MarkerCluster(name="Outside Cresta Zones", options={'disableClusteringAtZoom':10},show=True).add_to(m)
@@ -300,13 +303,8 @@ class CoordinateValidationTool(QMainWindow):
                 # check each row of data
                 for idx, row in self.data.iterrows():
                     
-                    '''CHECK DATA IS A VALID TYPE'''
-                    if isinstance(row['LOCNUM_AJG'], int) == False:
-                        nan_data = pd.concat([nan_data, row.to_frame().T])
-                        self.data.drop(idx, inplace=True)
-                        continue
+                    
                     try:
-                        self.data.at[idx, 'CRESTA_AJG'] = int(row['CRESTA_AJG'])
                         self.data.at[idx, 'LAT_AJG'] = float(row['LAT_AJG'])
                         self.data.at[idx, 'LONG_AJG'] = float(row['LONG_AJG'])
                     except Exception:
@@ -419,7 +417,7 @@ class CoordinateValidationTool(QMainWindow):
             self.get_outputs(inside_id, cresta_ambiguity_id, outside_id, nan_data, inside_df, cresta_ambiguity)
         
             map_path = self.dir_path + r'/Map Output.html'
-            self.create_folium(inside, cresta_ambiguity, outside, map_path, gdf_filtered)
+            # self.create_folium(inside, cresta_ambiguity, outside, map_path, gdf_filtered)
             self.append_text('Outputs successfully created.')
             
         except Exception as e:
@@ -441,7 +439,13 @@ class CoordinateValidationTool(QMainWindow):
     def get_excel_doc(self):
         self.excel_path, _ = QFileDialog.getOpenFileName(self, 'Select Excel File')
         if self.excel_path and self.excel_path.split(".")[-1] in ["xlsx", "xls"]:
-            self.data = pd.read_excel(self.excel_path) 
+            self.data = pd.read_excel(self.excel_path, encoding='latin-1') 
+            self.append_text('Excel file selected.')
+            self.dir_path = self.excel_path.replace(self.excel_path.split("/")[-1], "")
+            self.update_listbox()
+            self.update_progress(5)
+        elif self.excel_path and self.excel_path.split(".")[-1] in ["csv"]:
+            self.data = pd.read_csv(self.excel_path, encoding='latin-1') 
             self.append_text('Excel file selected.')
             self.dir_path = self.excel_path.replace(self.excel_path.split("/")[-1], "")
             self.update_listbox()
@@ -503,7 +507,6 @@ class CoordinateValidationTool(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     window = CoordinateValidationTool()
-    sys.exit(app.exec_())
+    return app.exec_()
 
 if __name__ == '__main__':
-    main()
