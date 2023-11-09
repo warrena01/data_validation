@@ -275,7 +275,7 @@ class CoordinateValidationTool(QMainWindow):
         self.append_text(f'Longitude Column selected: {self.long_col}')
         
     def geospatial_analysis(self):
-        
+    
         try:
             
             # get all the geometries and shapefiles
@@ -312,8 +312,6 @@ class CoordinateValidationTool(QMainWindow):
             outside_high_res = []
             inside_count = {}
             outside_count = {}
-                
-            i = 1
 
             for idx, row in self.data.iterrows():
                 
@@ -332,11 +330,8 @@ class CoordinateValidationTool(QMainWindow):
                     self.data.drop(idx, inplace=True)
                     print('row dropped due to wrong data type')
                     continue
-            
-            for idx, row in self.data.iterrows():
 
-                print(i)
-                i += 1
+            for idx, row in self.data.iterrows():
                 
                 # quickly remove data in incompatible zones
                 if x_list[0] <= row['longitude'] <= x_list[1] == False:
@@ -464,9 +459,8 @@ def main():
     return app.exec_()
 
 if __name__ == '__main__':
-    start_time = time.time()
+    
     exit_code = main()
-    end_time = time.time()
-    print(end_time - start_time)
     sys.exit(exit_code)  
+    
     
