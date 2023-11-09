@@ -139,89 +139,89 @@ class CoordinateValidationTool(QMainWindow):
         
     def create_folium(self, inside_points_dict, ambiguity_points_dict, outside_points_dict, file_path_to_save, gdf_filtered):
         
-        m = folium.Map(location=[self.data['LAT_AJG'].mean(), self.data['LONG_AJG'].mean()], zoom_start=4)
-                
-        # Add markers for points with cresta ambiguity
-        cresta_ambiguity_cluster = MarkerCluster(name="Cresta/Coordinate Inconsistency", options={'disableClusteringAtZoom':10},show=True).add_to(m)
-        for (lat_long, polygon_stated), info in ambiguity_points_dict.items():
-            count = info['count']
-            polygon_found = info.get('polygon_found', 'Not Found')
-            folium.Marker(lat_long, 
-                        popup=f'''<h5 style="width: 120px;">Ambiguity</h5><p style="width: 120px;">Cresta Stated: {polygon_stated}<br> Cresta Found: {polygon_found}<br>Count: {count}<br>Latitude: {lat_long[0]}<br>Longitude: {lat_long[1]}</p>''',
-                        max_width=1500, icon=folium.Icon(color='orange')).add_to(cresta_ambiguity_cluster)
-        
-        '''
-        # Add markers for points inside the cresta
-        inside_cluster = MarkerCluster(name="Correctly Geocoded Coordinate Points", options={'disableClusteringAtZoom':10},show=False).add_to(m)
-        for (lat_long, polygon), info in inside_points_dict.items():
-            count = info['count']
-            folium.Marker(lat_long, popup=f"""<h5 style="width: 120px;">Inside</h5><p style="width: 120px;">Cresta: {polygon}<br>Count: {count}<br>Latitude: {lat_long[0]}<br>Longitude: {lat_long[1]}</p>""",
-                        max_width=1500, icon=folium.Icon(color='green')).add_to(inside_cluster)
-        '''
-
-        # Add markers for points outside the cresta
-        outside_cluster = MarkerCluster(name="Outside Cresta Zones", options={'disableClusteringAtZoom':10},show=True).add_to(m)
-        for (lat_long, polygon_stated), info in outside_points_dict.items():
-            count = info['count']
-            folium.Marker(lat_long, 
-                        popup=f'''<h5 style="width: 120px;">Outside</h5><p style="width: 120px;">Cresta Stated: {polygon_stated}<br>Count: {count}<br>Latitude: {lat_long[0]}<br>Longitude: {lat_long[1]}</p>''',
-                        max_width=1500, icon=folium.Icon(color='red')).add_to(outside_cluster)
-
-        # Add the crestas on to the map as individual zones and as a whole
-        all_crestas = folium.FeatureGroup(name='All Crestas', show=True)
-        for idx, row in gdf_filtered.iterrows():
-            folium.GeoJson(row['geometry'], style_function=lambda x: {'fillColor': 'gray', 'color': 'black', 'weight': 1}).add_to(all_crestas)
-        all_crestas.add_to(m)   
-        for idx, row in gdf_filtered.iterrows():
-            polygon_group = folium.FeatureGroup(name=row['CRESTA_ID'], show=False)
-            folium.GeoJson(row['geometry'], style_function=lambda x: {'fillColor': 'gray', 'color': 'black', 'weight': 1}).add_to(polygon_group)
-            polygon_group.add_to(m)
+        if len(outside_points_dict) > 0 or len(ambiguity_points_dict) > 0 or len(inside_points_dict) > 0:
             
-        # add a legend 
-        legend_html = """
-                <div style="position: fixed; bottom:30px; left:30px; z-index:9999; font-size:11px;">
-                    <p><i class="fa fa-circle fa-1x" style="color:green"></i> Correct Cresta </p>
-                    <p><i class="fa fa-circle fa-1x" style="color:orange"></i> Cresta/Coordinate Inconsistency </p>
-                    <p><i class="fa fa-circle fa-1x" style="color:red"></i> Outside All Cresta Zones </p>
-                </div>
-                """
+            m = folium.Map(location=[self.data['LAT_AJG'].mean(), self.data['LONG_AJG'].mean()], zoom_start=4)
 
-        # Adding various tiles option incorporated within Folium library
-        folium.TileLayer('CartoDB positron').add_to(m) #Selected as Default
-        folium.TileLayer('OpenStreetMap').add_to(m) 
-        folium.TileLayer('Stamen Terrain').add_to(m)
-        folium.TileLayer('Stamen Toner').add_to(m)
-        folium.TileLayer('esrinatgeoworldmap', name='Esri NatGeo WorldMap', attr=' Esri, Delorme, NAVTEQ').add_to(m)
-        
-        # Layer control for each layers added can be checked & unchecked while selecting
-        folium.LayerControl(position='topright',collapsed=True, autoZIndex=True).add_to(m)
+            # Add markers for points with cresta ambiguity
+            cresta_ambiguity_cluster = MarkerCluster(name="Cresta/Coordinate Inconsistency", options={'disableClusteringAtZoom':10},show=True).add_to(m)
+            for (lat_long, polygon_stated), info in ambiguity_points_dict.items():
+                count = info['count']
+                polygon_found = info.get('polygon_found', 'Not Found')
+                folium.Marker(lat_long, 
+                            popup=f'''<h5 style="width: 120px;">Ambiguity</h5><p style="width: 120px;">Cresta Stated: {polygon_stated}<br> Cresta Found: {polygon_found}<br>Count: {count}<br>Latitude: {lat_long[0]}<br>Longitude: {lat_long[1]}</p>''',
+                            max_width=1500, icon=folium.Icon(color='orange')).add_to(cresta_ambiguity_cluster)
 
-        
-        m.get_root().html.add_child(folium.Element(legend_html))
+            # Add markers for points outside the cresta
+            outside_cluster = MarkerCluster(name="Outside Cresta Zones", options={'disableClusteringAtZoom':10},show=True).add_to(m)
+            for (lat_long, polygon_stated), info in outside_points_dict.items():
+                count = info['count']
+                folium.Marker(lat_long, 
+                            popup=f'''<h5 style="width: 120px;">Outside</h5><p style="width: 120px;">Cresta Stated: {polygon_stated}<br>Count: {count}<br>Latitude: {lat_long[0]}<br>Longitude: {lat_long[1]}</p>''',
+                            max_width=1500, icon=folium.Icon(color='red')).add_to(outside_cluster)
 
-        # Full Screen option
-        folium.plugins.Fullscreen().add_to(m)
-        
-        # get map output
-        m.save(file_path_to_save)
-        self.update_progress(100)
+            # Add the crestas on to the map as individual zones and as a whole
+            all_crestas = folium.FeatureGroup(name='All Crestas', show=True)
+            for idx, row in gdf_filtered.iterrows():
+                folium.GeoJson(row['geometry'], style_function=lambda x: {'fillColor': 'gray', 'color': 'black', 'weight': 1}).add_to(all_crestas)
+            all_crestas.add_to(m)   
+            for idx, row in gdf_filtered.iterrows():
+                polygon_group = folium.FeatureGroup(name=row['CRESTA_ID'], show=False)
+                folium.GeoJson(row['geometry'], style_function=lambda x: {'fillColor': 'gray', 'color': 'black', 'weight': 1}).add_to(polygon_group)
+                polygon_group.add_to(m)
+
+            # add a legend 
+            legend_html = """
+                    <div style="position: fixed; bottom:30px; left:30px; z-index:9999; font-size:11px;">
+                        <p><i class="fa fa-circle fa-1x" style="color:green"></i> Correct Cresta </p>
+                        <p><i class="fa fa-circle fa-1x" style="color:orange"></i> Cresta/Coordinate Inconsistency </p>
+                        <p><i class="fa fa-circle fa-1x" style="color:red"></i> Outside All Cresta Zones </p>
+                    </div>
+                    """
+
+            # Adding various tiles option incorporated within Folium library
+            folium.TileLayer('CartoDB positron').add_to(m) #Selected as Default
+            folium.TileLayer('OpenStreetMap').add_to(m) 
+            folium.TileLayer('Stamen Terrain').add_to(m)
+            folium.TileLayer('Stamen Toner').add_to(m)
+            folium.TileLayer('esrinatgeoworldmap', name='Esri NatGeo WorldMap', attr=' Esri, Delorme, NAVTEQ').add_to(m)
+
+            # Layer control for each layers added can be checked & unchecked while selecting
+            folium.LayerControl(position='topright',collapsed=True, autoZIndex=True).add_to(m)
+
+            m.get_root().html.add_child(folium.Element(legend_html))
+
+            # Full Screen option
+            folium.plugins.Fullscreen().add_to(m)
+
+            # get map output
+            m.save(file_path_to_save)
+            self.update_progress(100)
         
     def get_outputs(self, inside_id, cresta_ambiguity_id, outside_id, nan_data, inside_df, cresta_ambiguity):
         
-        cresta_ambiguity_df = self.data[self.data['LOCNUM_AJG'].isin(cresta_ambiguity_id)]
+        def CamelCase(word):
+            words = word.split() 
+            camel_case = ' '.join(word.capitalize() for word in words)
+            return camel_case 
         
-        if self.yesono == 'Yes':
-            for id, row in cresta_ambiguity_df.iterrows():
-                lat_long = (row['LAT_AJG'], row['LONG_AJG'])
-                value = cresta_ambiguity[(lat_long, row['CRESTA_AJG'])]['polygon_found']
-                cresta_ambiguity_df.at[id, 'CRESTA_FOUND_AJG'] = value.item() if isinstance(value, numpy.int64) else value
-        else:
-            for idx, row in cresta_ambiguity_df.iterrows():
-                lat_long = (row['LAT_AJG'], row['LONG_AJG'])
-                client_cresta_num = self.gdf.loc[self.gdf['CRESTA_DES'] == row['CRESTA_AJG'], 'CRESTA_ID'].values[0]
-                cresta_ambiguity_df.loc[idx, 'CRESTA_NUM_AJG'] = client_cresta_num  
-                cresta_ambiguity_df.loc[idx, 'CRESTA_NUM_FOUND_AJG'] = cresta_ambiguity[(lat_long, client_cresta_num)]['polygon_found']
-                outside_df = self.data[self.data['LOCNUM_AJG'].isin(outside_id)]
+        cresta_ambiguity_df = self.data[self.data['LOCNUM_AJG'].isin(cresta_ambiguity_id)]
+        outside_df = self.data[self.data['LOCNUM_AJG'].isin(outside_id)]
+        
+        if len(cresta_ambiguity_df) > 0:
+            if self.yesono == 'Yes':
+                for id, row in cresta_ambiguity_df.iterrows():
+                    lat_long = (row['LAT_AJG'], row['LONG_AJG'])
+                    value = cresta_ambiguity[(lat_long, row['CRESTA_AJG'])]['polygon_found']
+                    cresta_ambiguity_df.at[id, 'CRESTA_FOUND_AJG'] = value.item() if isinstance(value, numpy.int64) else value
+            else:
+                for idx, row in cresta_ambiguity_df.iterrows():
+                    lat_long = (row['LAT_AJG'], row['LONG_AJG'])
+                    client_cresta_desc = CamelCase(row['CRESTA_AJG'])
+                    client_cresta_num = self.gdf.loc[self.gdf['CRESTA_DES'] == client_cresta_desc, 'CRESTA_ID'].values[0]
+                    cresta_ambiguity_df.loc[idx, 'CRESTA_NUM_FOUND_AJG'] = cresta_ambiguity[(lat_long, client_cresta_num)]['polygon_stated']
+                    cresta_ambiguity_df.loc[idx, 'CRESTA_NUM_FOUND_AJG'] = cresta_ambiguity[(lat_long, client_cresta_num)]['polygon_found']
+                    outside_df = self.data[self.data['LOCNUM_AJG'].isin(outside_id)]
 
 
         user_reporting_file_path = self.dir_path + (r'/User Reporting.txt')
@@ -248,7 +248,7 @@ class CoordinateValidationTool(QMainWindow):
             nan_data_path = self.dir_path + (r'/Incomplete Data.xlsx')
             nan_data.to_excel(nan_data_path, index=False)
         
-        self.update_progress(90)
+        self.update_progress(100)
               
     def geospatial_analysis(self):
 
@@ -257,10 +257,9 @@ class CoordinateValidationTool(QMainWindow):
             camel_case = ' '.join(word.capitalize() for word in words)
             return camel_case  
         
-        try:
+        if 2>1:
         
             self.data = self.data.rename(columns={self.lat_col: 'LAT_AJG', self.long_col: 'LONG_AJG', self.cresta_col: 'CRESTA_AJG', self.locnum_col: 'LOCNUM_AJG'})
-
             nan_data = pd.DataFrame(columns=self.data.columns)
             
             # initialise variables
@@ -287,6 +286,7 @@ class CoordinateValidationTool(QMainWindow):
                 if row[column_names].isnull().any():
                     nan_data = pd.concat([nan_data, row.to_frame().T])
                     self.data.drop(idx, inplace=True)    
+                    print('dropped due to null')
             
             '''STANDARDISE DR INPUTS'''
             if self.country_name == 'Dominican Republic':
@@ -303,13 +303,21 @@ class CoordinateValidationTool(QMainWindow):
                 # check each row of data
                 for idx, row in self.data.iterrows():
                     
-                    
+                    '''CHECK DATA IS A VALID TYPE'''
                     try:
                         self.data.at[idx, 'LAT_AJG'] = float(row['LAT_AJG'])
                         self.data.at[idx, 'LONG_AJG'] = float(row['LONG_AJG'])
                     except Exception:
                         nan_data = pd.concat([nan_data, row.to_frame().T])
                         self.data.drop(idx, inplace=True)
+                        print('lat_long_wrong')
+                        continue
+                    try:
+                        self.data.at[idx, 'CRESTA_AJG'] = int(row['CRESTA_AJG'])
+                    except Exception:
+                        nan_data = pd.concat([nan_data, row.to_frame().T])
+                        self.data.drop(idx, inplace=True)
+                        print('cresta_wrong')
                         continue
                         
                     '''CHECK DATA IS A VALID INPUT'''
@@ -356,11 +364,8 @@ class CoordinateValidationTool(QMainWindow):
 
                 # check each row of data
                 for idx, row in self.data.iterrows():
+                    
                     '''CHECK DATA IS A VALID TYPE'''
-                    if isinstance(row['LOCNUM_AJG'], int) == False:
-                        nan_data = pd.concat([nan_data, row.to_frame().T])
-                        self.data.drop(idx, inplace=True)
-                        continue
                     try:
                         self.data.at[idx, 'LAT_AJG'] = float(row['LAT_AJG'])
                         self.data.at[idx, 'LONG_AJG'] = float(row['LONG_AJG'])
@@ -417,9 +422,10 @@ class CoordinateValidationTool(QMainWindow):
             self.get_outputs(inside_id, cresta_ambiguity_id, outside_id, nan_data, inside_df, cresta_ambiguity)
         
             map_path = self.dir_path + r'/Map Output.html'
-            # self.create_folium(inside, cresta_ambiguity, outside, map_path, gdf_filtered)
+            self.create_folium(inside, cresta_ambiguity, outside, map_path, gdf_filtered)
             self.append_text('Outputs successfully created.')
             
+        '''
         except Exception as e:
             # check everything has been filled in 
             my_list = [self.yesono, self.gdf, self.dir_path, self.data, self.lat_col, self.long_col, self.cresta_col, self.locnum_col]
@@ -434,12 +440,13 @@ class CoordinateValidationTool(QMainWindow):
                 self.append_text(f'Not all fields were satisfied. Please ensure all inputs necessary have been inputted correctly')
             else:   
                 self.append_text(f'Error during geospatial analysis: {str(e)}')
-                #print(str(e))  
-             
+        '''      
+        
+    
     def get_excel_doc(self):
         self.excel_path, _ = QFileDialog.getOpenFileName(self, 'Select Excel File')
         if self.excel_path and self.excel_path.split(".")[-1] in ["xlsx", "xls"]:
-            self.data = pd.read_excel(self.excel_path, encoding='latin-1') 
+            self.data = pd.read_excel(self.excel_path) 
             self.append_text('Excel file selected.')
             self.dir_path = self.excel_path.replace(self.excel_path.split("/")[-1], "")
             self.update_listbox()
@@ -510,3 +517,8 @@ def main():
     return app.exec_()
 
 if __name__ == '__main__':
+    start_time = time.time()
+    exit_code = main()
+    end_time = time.time()
+    print(end_time - start_time)
+    sys.exit(exit_code)  
