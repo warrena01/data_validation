@@ -257,7 +257,7 @@ class CoordinateValidationTool(QMainWindow):
             camel_case = ' '.join(word.capitalize() for word in words)
             return camel_case  
         
-        if 2>1:
+        try:
         
             self.data = self.data.rename(columns={self.lat_col: 'LAT_AJG', self.long_col: 'LONG_AJG', self.cresta_col: 'CRESTA_AJG', self.locnum_col: 'LOCNUM_AJG'})
             nan_data = pd.DataFrame(columns=self.data.columns)
@@ -372,6 +372,7 @@ class CoordinateValidationTool(QMainWindow):
                     except Exception:
                         nan_data = pd.concat([nan_data, row.to_frame().T])
                         self.data.drop(idx, inplace=True)
+                        print('null data removed')
                         continue
                     
                     point = Point(row['LONG_AJG'], row['LAT_AJG']) 
@@ -425,7 +426,7 @@ class CoordinateValidationTool(QMainWindow):
             self.create_folium(inside, cresta_ambiguity, outside, map_path, gdf_filtered)
             self.append_text('Outputs successfully created.')
             
-        '''
+        
         except Exception as e:
             # check everything has been filled in 
             my_list = [self.yesono, self.gdf, self.dir_path, self.data, self.lat_col, self.long_col, self.cresta_col, self.locnum_col]
@@ -440,7 +441,7 @@ class CoordinateValidationTool(QMainWindow):
                 self.append_text(f'Not all fields were satisfied. Please ensure all inputs necessary have been inputted correctly')
             else:   
                 self.append_text(f'Error during geospatial analysis: {str(e)}')
-        '''      
+              
         
     
     def get_excel_doc(self):
@@ -521,4 +522,4 @@ if __name__ == '__main__':
     exit_code = main()
     end_time = time.time()
     print(end_time - start_time)
-    sys.exit(exit_code) 
+    sys.exit(exit_code)  
