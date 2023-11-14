@@ -1,18 +1,17 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QComboBox, QLineEdit, QTextEdit,QProgressBar, QCheckBox
-from PyQt5.QtGui import QTextCursor
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QComboBox, QTextEdit,QProgressBar, QCheckBox
 from PyQt5.QtCore import Qt
 import geopandas as gpd
 import pandas as pd
 import folium
 from shapely.geometry import Point
-from folium.plugins import HeatMap, MarkerCluster
-from geopy.geocoders import Nominatim
+from folium.plugins import MarkerCluster
 import glob
 import openpyxl
 from rtree.index import Index
 import numpy
 import time
+import os
 
 class CoordinateValidationTool(QMainWindow):
     
@@ -60,7 +59,10 @@ class CoordinateValidationTool(QMainWindow):
 
         self.listbox1 = QComboBox(self)
         self.listbox1.setGeometry(30, 130, 200, 30)
-        countries = glob.glob(r'J:\cms\External\Team Members\Adam Warren\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res\*\\')
+        if os.path.exists(r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res'):
+            countries = glob.glob(r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res\*\\')
+        elif os.path.exists(r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res'):
+            countries = glob.glob(r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res\*\\')
         countries_list = []
         for string in countries:
             split_parts = string.rsplit("\\", 2)
@@ -441,9 +443,7 @@ class CoordinateValidationTool(QMainWindow):
                 self.append_text(f'Not all fields were satisfied. Please ensure all inputs necessary have been inputted correctly')
             else:   
                 self.append_text(f'Error during geospatial analysis: {str(e)}')
-              
-        
-    
+                 
     def get_excel_doc(self):
         self.excel_path, _ = QFileDialog.getOpenFileName(self, 'Select Excel File')
         if self.excel_path and self.excel_path.split(".")[-1] in ["xlsx", "xls"]:
@@ -463,15 +463,22 @@ class CoordinateValidationTool(QMainWindow):
 
     def choose_country(self):
         self.country_name = self.listbox1.currentText()
+        self.append_text(f'Country selected: {self.country_name}')
         try:
-            shp_path = rf'J:\cms\External\Team Members\Adam Warren\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res\{self.country_name}\{self.country_name}.shp'
-            self.append_text(f'.shp download started')
-            self.gdf = gpd.read_file(shp_path)
-            self.append_text(f'Country selected: {self.country_name}')
-            self.append_text(f'Country successfully downloaded')
-            self.update_progress(10)
+            if os.path.exists(r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res'):
+                shp_path = rf'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res\{self.country_name}\{self.country_name}.shp'
+                self.append_text(f'.shp download started')
+                self.gdf = gpd.read_file(shp_path)
+                self.append_text(f'Country successfully downloaded')
+                self.update_progress(10)
+            elif os.path.exists(r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res'):
+                shp_path = rf'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res\{self.country_name}\{self.country_name}.shp'
+                self.append_text(f'.shp download started')
+                self.gdf = gpd.read_file(shp_path)
+                self.append_text(f'Country successfully downloaded')
+                self.update_progress(10)
         except Exception:
-            self.append_text('The file location appears to have moved. Ensure the following path file still exists "J:\cms\External\Team Members\Adam Warren\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res\"')
+            self.append_text('The file location appears to have moved. Ensure the following path file still exists "J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC CRESTA ZONES PER COUNTRY - DO NOT MOVE\South American Cresta Zones Per Country High Res". Note, your file path may start with "Analytics"')
             
     def cresta_data_given(self, state):
         if state == 2:  # 2 represents the checked state
