@@ -11,7 +11,6 @@ from geopy.geocoders import Nominatim
 import glob
 import openpyxl
 import xlrd
-import time 
 
 class CoordinateValidationTool(QMainWindow):
 
@@ -53,7 +52,10 @@ class CoordinateValidationTool(QMainWindow):
         self.label2.setGeometry(30, 100, 400, 20)
         self.listbox = QComboBox(self)
         self.listbox.setGeometry(30, 130, 200, 30)
-        countries = glob.glob(r'J:\cms\External\Team Members\Adam Warren\LAC COUNTRY SHAPEFILES - DO NOT MOVE\2. World LowRes\*\\')
+        if path.exists(r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC COUNTRY SHAPEFILES - DO NOT MOVE'):
+            countries = glob.glob(r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC COUNTRY SHAPEFILES - DO NOT MOVE\2. World LowRes\*\\')
+        elif path.exists(r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC COUNTRY SHAPEFILES - DO NOT MOVE'):
+            countries = glob.glob(r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC COUNTRY SHAPEFILES - DO NOT MOVE\2. World LowRes\*\\')
         countries_list = []
         for string in countries:
             split_parts = string.rsplit("\\", 2)
@@ -145,18 +147,32 @@ class CoordinateValidationTool(QMainWindow):
         selected_country = self.listbox.currentText()
         if selected_country:
             self.country_name = selected_country
-            base_path = rf'J:\cms\External\Team Members\Adam Warren'
-            if self.country_name == 'Saint Vincent and the Grenadines':
-                self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
-                                                '2. World LowRes', 'Saint Vincent and the Grenadines',
-                                                'Saint Vincent and the Grenadines.shp')
-                
+            if path.exists(r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools'):
+                base_path = r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools'
+                if self.country_name == 'Saint Vincent and the Grenadines':
+                    self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
+                                                    '2. World MidRes1', 'Saint Vincent and the Grenadines',
+                                                    'Saint Vincent and the Grenadines.shp')
+                else:
+                    self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
+                                                    '2. World LowRes', self.country_name, f'{self.country_name}.shp')
+                self.shapefile_high_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
+                                                    '5. World HighRes', self.country_name, f'{self.country_name}.shp')
+                self.append_text(f'Country selected: {self.country_name}')
+            elif path.exists(r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools'):
+                base_path = r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools'
+                if self.country_name == 'Saint Vincent and the Grenadines':
+                    self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
+                                                    '2. World MidRes1', 'Saint Vincent and the Grenadines',
+                                                    'Saint Vincent and the Grenadines.shp')
+                else:
+                    self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
+                                                    '2. World LowRes', self.country_name, f'{self.country_name}.shp')
+                self.shapefile_high_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
+                                                    '5. World HighRes', self.country_name, f'{self.country_name}.shp')
+                self.append_text(f'Country selected: {self.country_name}')
             else:
-                self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
-                                                '2. World LowRes', self.country_name, f'{self.country_name}.shp')
-            self.shapefile_high_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
-                                                '5. World HighRes', self.country_name, f'{self.country_name}.shp')
-            self.append_text(f'Country selected: {self.country_name}')
+                self.append_Text('File path to shapefiles cannot be found')
         else:
             self.append_text('Please select a country.')
 
@@ -372,6 +388,7 @@ class CoordinateValidationTool(QMainWindow):
             
             outside_low_res = pd.concat([outside_low_res, outside_bounds])
 
+
             self.append_text('Geospatial analysis at high resolution finished.')
                                    
             self.update_progress(50)
@@ -379,10 +396,13 @@ class CoordinateValidationTool(QMainWindow):
             inside_df = self.data[self.data['ID'].isin(inside_id)]
             inside_file_path = self.file_path.replace('map_output.html', 'inside_LL.xlsx')
             invalid_LL_file_path = self.file_path.replace('map_output.html', 'invalid_LL.xlsx')
-            outside_low_res.to_csv(invalid_LL_file_path, index=False)
+            outside_low_res.to_excel(invalid_LL_file_path, index=False)
             print('outside_excel_made')
-            inside_df.to_csv(inside_file_path, index=False)
+            inside_df.to_excel(inside_file_path, index=False)
             print('inside_excel_made')
+            nan_data_file_path = self.file_path.replace('map_output.html', 'null_data.xlsx')
+            nan_data.to_excel(nan_data_file_path, index=False)
+
             self.append_text('Invalid LatLong excel file successfully created.')
 
             user_reporting_file_path = self.file_path.replace('map_output.html', 'user_reporting.txt')
@@ -401,7 +421,6 @@ class CoordinateValidationTool(QMainWindow):
             self.plot_maps(self.data, country_geometry_high_res, self.map_output, outside_high_res, inside_count, self.file_path, country_geometry_low_res, inside_df, outside_low_res)
             self.append_text('Map output successfully created.')
             self.append_text('Geospatial analysis completed.')
-
             self.update_progress(80) 
         
          
@@ -462,5 +481,4 @@ if __name__ == '__main__':
     
     exit_code = main()
     sys.exit(exit_code)  
-    
-    
+     
