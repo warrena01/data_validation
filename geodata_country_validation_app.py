@@ -54,18 +54,28 @@ class CoordinateValidationTool(QMainWindow):
         self.listbox.setGeometry(30, 130, 200, 30)
         if path.exists(r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC COUNTRY SHAPEFILES - DO NOT MOVE'):
             countries = glob.glob(r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC COUNTRY SHAPEFILES - DO NOT MOVE\2. World LowRes\*\\')
+            countries_list = []
+            for string in countries:
+                split_parts = string.rsplit("\\", 2)
+                country = split_parts[1]
+                countries_list.append(country)
+            self.listbox.addItems(countries_list)
+            self.listbox.setCurrentIndex(-1)
+            self.btn2 = QPushButton('Confirm', self)
+            self.btn2.setGeometry(30, 160, 100, 30)
+            self.btn2.clicked.connect(self.choose_country)
         elif path.exists(r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC COUNTRY SHAPEFILES - DO NOT MOVE'):
             countries = glob.glob(r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools\LAC COUNTRY SHAPEFILES - DO NOT MOVE\2. World LowRes\*\\')
-        countries_list = []
-        for string in countries:
-            split_parts = string.rsplit("\\", 2)
-            country = split_parts[1]
-            countries_list.append(country)
-        self.listbox.addItems(countries_list)
-        self.listbox.setCurrentIndex(-1)
-        self.btn2 = QPushButton('Confirm', self)
-        self.btn2.setGeometry(30, 160, 100, 30)
-        self.btn2.clicked.connect(self.choose_country)
+            countries_list = []
+            for string in countries:
+                split_parts = string.rsplit("\\", 2)
+                country = split_parts[1]
+                countries_list.append(country)
+            self.listbox.addItems(countries_list)
+            self.listbox.setCurrentIndex(-1)
+            self.btn2 = QPushButton('Confirm', self)
+            self.btn2.setGeometry(30, 160, 100, 30)
+            self.btn2.clicked.connect(self.choose_country)
         
         '''GET OUTPUT MAP'''
         self.label3 = QLabel('Step 3: Select the output map, then hit confirm', self)
@@ -151,7 +161,7 @@ class CoordinateValidationTool(QMainWindow):
                 base_path = r'J:\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools'
                 if self.country_name == 'Saint Vincent and the Grenadines':
                     self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
-                                                    '2. World MidRes1', 'Saint Vincent and the Grenadines',
+                                                    '3. World MidRes1', 'Saint Vincent and the Grenadines',
                                                     'Saint Vincent and the Grenadines.shp')
                 else:
                     self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
@@ -163,7 +173,7 @@ class CoordinateValidationTool(QMainWindow):
                 base_path = r'J:\Analytics\cms\Internal\Territories\LAC\3. Vendor & Internal Models\LAC Geodata Validation Tools'
                 if self.country_name == 'Saint Vincent and the Grenadines':
                     self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
-                                                    '2. World MidRes1', 'Saint Vincent and the Grenadines',
+                                                    '3. World MidRes1', 'Saint Vincent and the Grenadines',
                                                     'Saint Vincent and the Grenadines.shp')
                 else:
                     self.shapefile_low_res = path.join(base_path, 'LAC COUNTRY SHAPEFILES - DO NOT MOVE',
