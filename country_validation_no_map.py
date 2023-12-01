@@ -280,13 +280,13 @@ class CoordinateValidationTool(QMainWindow):
                 if location.within(country_geometry_high_res):
                     inside.append((row['ID'], row['latitude'], row['longitude']))
                     inside_count[lat_long] = inside_count.get(lat_long, 0) + 1
+                    inside_id.append(row['ID'])
                     outside_low_res.drop(idx, inplace=True)
                 else:
                     outside_high_res.append((row['ID'], row['latitude'], row['longitude']))
                     outside_count[lat_long] = outside_count.get(lat_long, 0) + 1
             
             outside_low_res = pd.concat([outside_low_res, outside_bounds])
-
 
             self.append_text('Geospatial analysis at high resolution finished.')
                                    
