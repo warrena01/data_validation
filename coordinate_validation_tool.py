@@ -379,12 +379,12 @@ class CoordinateValidationTool(QMainWindow):
         
         for idx, row in self.data.iterrows():
 
-            counter += 1
-            print(f"Data Cleaned: {counter}/{total}")
-
             if self.analysis_type == 'Country First 1000 Rows':
                 if counter == 1000:
                     break
+
+            counter += 1
+            print(f"Data Cleaned: {counter}/{total}")
             
             ''' Check for Nulls '''
             
@@ -393,6 +393,7 @@ class CoordinateValidationTool(QMainWindow):
                 if self.analysis_type == 'Country First 1000 Rows':
                     if counter <= 1000:
                         first_1000_rows_skip.append(idx)
+                        continue
                 else:
                     self.nan_data = pd.concat([self.nan_data, row.to_frame().T])
                     self.data.drop(idx, inplace=True)
@@ -403,6 +404,7 @@ class CoordinateValidationTool(QMainWindow):
                     if self.analysis_type == 'Country First 1000 Rows':
                         if counter <= 1000:
                             first_1000_rows_skip.append(idx)
+                            continue
                     else:
                         self.nan_data = pd.concat([self.nan_data, row.to_frame().T])
                         self.data.drop(idx, inplace=True)
@@ -414,8 +416,8 @@ class CoordinateValidationTool(QMainWindow):
                 self.data.at[idx, 'LONG_AJG'] = float(row['LONG_AJG'])
             except Exception:
                 if self.analysis_type == 'Country First 1000 Rows':
-                    if counter <= 1000:
-                        first_1000_rows_skip.append(idx)
+                    first_1000_rows_skip.append(idx)
+                    continue
                 else:
                     self.nan_data = pd.concat([self.nan_data, row.to_frame().T])
                     self.data.drop(idx, inplace=True)
@@ -433,19 +435,11 @@ class CoordinateValidationTool(QMainWindow):
                             num = int(num)
                             self.data.at[idx, 'CRESTA_AJG'] = num
                         except Exception:
-                            if self.analysis_type == 'Country First 1000 Rows':
-                                if counter <= 1000:
-                                    first_1000_rows_skip.append(idx)
-                            else:
                                 self.nan_data = pd.concat([self.nan_data, row.to_frame().T])
                                 self.data.drop(idx, inplace=True)
                                 continue
                             
                     except Exception:
-                        if self.analysis_type == 'Country First 1000 Rows':
-                            if counter <= 1000:
-                                first_1000_rows_skip.append(idx)
-                        else:
                             self.nan_data = pd.concat([self.nan_data, row.to_frame().T])
                             self.data.drop(idx, inplace=True)
                             continue
@@ -656,7 +650,7 @@ class CoordinateValidationTool(QMainWindow):
                     outside_df_path = dir_path + '/Incorrect Lat Longs.csv'
                     self.save_dataframe(self.outside_df_country_check, outside_df_path, myformats=['%s','%f', '%f'])
                     nan_data_path = dir_path + '/Null or Wrong Data Type Lat Longs.csv'
-                    self.save_dataframe(nan_to_print, nan_data_path, myformats=['%s','%f', '%f'])
+                    self.nan_data.to_csv(nan_data_path, index=False, encoding='latin-1')
 
                 if self.analysis_type == 'Country':
                     self.recent_analysis = 'Country'
@@ -710,6 +704,7 @@ class CoordinateValidationTool(QMainWindow):
                 for idx, row in data.iterrows():
                     
                     counter_cresta += 1
+                    print(f"Cresta: {counter}/{1000}")
 
                     point = shapely.geometry.Point(row['LONG_AJG'], row['LAT_AJG']) 
                     lat_long = (row['LAT_AJG'], row['LONG_AJG'])
@@ -807,12 +802,12 @@ class CoordinateValidationTool(QMainWindow):
                 dir_path = self.excel_path.replace(self.excel_path.split("/")[-1], "")
                 inside_df_path = dir_path + '/Consistent Cresta Lat Longs.csv'
                 self.save_dataframe(self.inside_df_cresta_check, inside_df_path, myformats=['%s','%f', '%f', '%s'])
-                outside_df_path = dir_path + '/Incorrect cresta Lat Longs.csv'
+                outside_df_path = dir_path + '/Incorrect Cresta Lat Longs.csv'
                 self.save_dataframe(self.outside_df_cresta_check, outside_df_path, myformats=['%s','%f', '%f', '%s'])
                 ambiguous_df_path = dir_path + '/Inconsistent Cresta Lat Longs.csv'
                 self.save_dataframe(self.ambiguous_df_cresta_check, ambiguous_df_path, myformats=['%s','%f', '%f'])
                 nan_data_path = dir_path + '/Null or Wrong Data Type Cresta Lat Longs.csv'
-                self.save_dataframe(self.nan_data, nan_data_path, myformats=['%s','%f', '%f', '%s'])
+                self.nan_data.to_csv(nan_data_path, index=False, encoding='latin-1')
 
                 self.append_text('')
                 self.append_text('Cresta Summary Review')
@@ -842,16 +837,16 @@ class CoordinateValidationTool(QMainWindow):
             self.append_text('')
             self.append_text(f'Elapsed time: {(elapsed_time/60):.1f} mins')
             self.append_text('')
-            
+          
         except Exception as e:
 
             self.update_progress(100)
 
             my_list = None
             if self.analysis_type == 'Cresta':
-                my_list = [self.data, self.cresta_col, self.loc_col, self.lat_col, self.long_col]
+                my_list = [self.data, self.cresta_col, self.loc_col, self.lat_col, self.long_col, self.gdf]
             else:
-                my_list = [self.data, self.loc_col, self.lat_col, self.long_col]
+                my_list = [self.data, self.loc_col, self.lat_col, self.long_col, self.gdf_low_res, self.gdf_high_res]
             for i in my_list:
                 if i is None:
                     self.append_text(f'Not all fields were satisfied. Please ensure all inputs necessary have been inputted correctly')
