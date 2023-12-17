@@ -61,7 +61,6 @@ class CoordinateValidationTool(QMainWindow):
         self.cresta_ambiguous_dict = None
         
         self.first_1000_idx = None
-        self.cresta_just_run = None
         self.analysis_just_run = False
         self.recent_analysis = None
 
@@ -366,7 +365,7 @@ class CoordinateValidationTool(QMainWindow):
 
         if self.analysis_just_run == False: 
             self.nan_data = pd.DataFrame(columns=self.data.columns)
-        elif self.cresta_just_run == 1:
+        elif self.recent_analysis == 'Cresta':
             if self.analysis_type == 'Country':
                 self.nan_data = pd.DataFrame(columns=self.data.columns)
 
@@ -498,7 +497,7 @@ class CoordinateValidationTool(QMainWindow):
             self.append_text('')
             self.append_text('Geospatial Analysis Started')
 
-            if self.cresta_just_run == 1:
+            if self.recent_analysis == 'Cresta:
                 if self.excel_path and self.excel_path.split(".")[-1] in ["xlsx", "xls"]:
                     self.data = pd.read_excel(self.excel_path)
                 elif self.excel_path and self.excel_path.split(".")[-1] in ["csv"]:
@@ -510,10 +509,6 @@ class CoordinateValidationTool(QMainWindow):
                 self.clean_data()
                 self.append_text('Data Standardized and Cleaned')
                 self.update_progress(10)
-
-                self.cresta_just_run = None
-                self.analysis_just_run = False
-                self.first_country_name = self.country_name
             
                 ''' Initialise Variables '''
                 inside_id = []
@@ -657,7 +652,9 @@ class CoordinateValidationTool(QMainWindow):
                 self.update_progress(100)
             
             if self.analysis_type == 'Cresta':
-            
+                
+                self.analysis_just_run = False
+                
                 data = None
                 before_cleaned = None
                 if self.analysis_just_run == True:
@@ -824,7 +821,6 @@ class CoordinateValidationTool(QMainWindow):
                 self.append_text(f'% of Points at Cresta Centroid: {((centroid_counter*100)/total):.2f}%')
                 self.append_text('')
 
-                self.cresta_just_run = 1
                 self.recent_analysis = 'Cresta'
                 
                 self.update_progress(100)
@@ -1076,7 +1072,6 @@ class CoordinateValidationTool(QMainWindow):
         self.cresta_ambiguous_dict = None
         
         self.first_1000_idx = None
-        self.cresta_just_run = None
         self.analysis_just_run = False
         self.recent_analysis = None
 
