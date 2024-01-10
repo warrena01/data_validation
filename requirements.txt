@@ -1,0 +1,8 @@
+folium==0.14.0
+geopandas==0.13.2
+pandas==2.0.3
+glob2==0.7
+rtree==1.0.1
+PyQt5==5.15.7
+geopy==2.4.0
+PyQtWebEngine==5.15.6
